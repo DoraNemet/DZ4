@@ -16,15 +16,17 @@ import java.util.ArrayList;
 import static com.ferit.dfundak.dz4.R.mipmap.ic_launcher_round;
 
 /**
- * Created by Dora on 27/04/2017.
+ * Created by Dora on 26/04/2017.
  */
 
 public class ItemAdapter extends BaseAdapter {
 
     private ArrayList<FeedItem> mFeed;
+    private String selectedCategory;
 
-    public ItemAdapter(ArrayList<FeedItem> queryModelList) {
-        this.mFeed = queryModelList;
+    public ItemAdapter(ArrayList<FeedItem> queryItemList, String selectedItem) {
+        this.mFeed = queryItemList;
+        this.selectedCategory = selectedItem;
     }
 
     @Override
@@ -44,37 +46,33 @@ public class ItemAdapter extends BaseAdapter {
 
     @NonNull
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-
+    public View getView(int position, View rootView, ViewGroup parent) {
         final FeedItem model = mFeed.get(position);
         ArticleViewHolder articleViewHolder;
 
-        if (convertView == null) {
-            LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-            convertView = inflater.inflate(R.layout.item_row, parent, false);
-            articleViewHolder = new ArticleViewHolder(convertView);
-            convertView.setTag(articleViewHolder);
-
+        if (rootView == null) {
+            LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
+            rootView = layoutInflater.inflate(R.layout.item_row, parent, false);
+            articleViewHolder = new ArticleViewHolder(rootView);
+            rootView.setTag(articleViewHolder);
         } else {
-            articleViewHolder = (ArticleViewHolder) convertView.getTag();
+            articleViewHolder = (ArticleViewHolder) rootView.getTag();
         }
 
-        articleViewHolder.tvTitle.setText(model.getmTitle());
-        articleViewHolder.tvDescription.setText(model.getmDescription());
-        articleViewHolder.tvLink.setText(model.getmLink());
-        articleViewHolder.tvDate.setText(model.getmPublished());
+        articleViewHolder.tvTitle.setText(model.getTitle());
+        articleViewHolder.tvDescription.setText(model.getDescription());
+        articleViewHolder.tvLink.setText(model.getLink());
+        articleViewHolder.tvDate.setText(model.getPublished());
 
-        if (model.getmChannel().getUrl() != null) {
-
-            String picture_url = model.getmChannel().getUrl();
-
+        if (model.getChannel().getUrl() != null) {
+            String picture_url = model.getChannel().getUrl();
             if (picture_url != null) {
                 ImageLoader.getInstance().displayImage(picture_url, articleViewHolder.ivImage);
             }
         } else {
             articleViewHolder.ivImage.setImageResource(ic_launcher_round);
         }
-        return convertView;
+        return rootView;
     }
 
     static class ArticleViewHolder {
@@ -83,11 +81,11 @@ public class ItemAdapter extends BaseAdapter {
 
         public ArticleViewHolder(View tasksView) {
 
-            this.ivImage = (ImageView) tasksView.findViewById(R.id.ivImage);
-            this.tvTitle = (TextView) tasksView.findViewById(R.id.txtTitle);
-            this.tvDate = (TextView) tasksView.findViewById(R.id.txtPublished);
-            this.tvDescription = (TextView) tasksView.findViewById(R.id.txtDescription);
-            this.tvLink = (TextView) tasksView.findViewById(R.id.txhtml);
+            this.ivImage = (ImageView) tasksView.findViewById(R.id.iv_image);
+            this.tvTitle = (TextView) tasksView.findViewById(R.id.tv_title);
+            this.tvDate = (TextView) tasksView.findViewById(R.id.tv_date);
+            this.tvDescription = (TextView) tasksView.findViewById(R.id.tv_description);
+            this.tvLink = (TextView) tasksView.findViewById(R.id.tv_url);
         }
     }
 }

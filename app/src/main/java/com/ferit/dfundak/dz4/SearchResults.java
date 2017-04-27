@@ -6,7 +6,7 @@ import org.simpleframework.xml.Element;
 import org.simpleframework.xml.Root;
 
 /**
- * Created by Dora on 27/04/2017.
+ * Created by Dora on 26/04/2017.
  */
 
 @Root(strict = false, name = "rss")

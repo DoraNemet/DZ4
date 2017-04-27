@@ -1,18 +1,16 @@
 package com.ferit.dfundak.dz4;
 
 import android.app.Activity;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,45 +29,33 @@ import retrofit2.Retrofit;
 import retrofit2.converter.simplexml.SimpleXmlConverterFactory;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
 
     private static final String PATH = "rss/vijesti/";
-    private static final String ENDPOINT = "http://www.bug.hr";
-
+    private static final String URL_BUG = "http://www.bug.hr";
+    private Spinner spnCategory;
     private ListView lvFeed;
-    private ArrayList<FeedItem> queryModelList;
+    private ArrayList<FeedItem> queryItemList;
     private ArrayList<String> category = new ArrayList<>();
     Intent browserIntent;
     Button refreshBtn;
-
-    private RefreshServiceConnection mRefreshServiceConnection;
-    private Refresh mRefreshService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mRefreshServiceConnection = new RefreshServiceConnection();
-        requestRaw();
-        setupUI();
-    }
-
-    private void setupUI() {
+        requestAll();
 
         lvFeed = (ListView) findViewById(R.id.lvFeed);
-        Intent intent = new Intent(getApplicationContext(), Refresh.class);
-        this.bindService(intent, this.mRefreshServiceConnection, Context.BIND_AUTO_CREATE);
 
-        refreshBtn = (Button) findViewById(R.id.refreshButton);
-        refreshBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                requestData();
-            }
-        });
+        this.spnCategory = (Spinner) findViewById(R.id.spnCategory);
+        ArrayAdapter<CharSequence> inputDAdapter = new ArrayAdapter(getApplicationContext(), android.R.layout.simple_spinner_item, category);
+        inputDAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spnCategory.setAdapter(inputDAdapter);
+        spnCategory.setOnItemSelectedListener(this);
 
-//Image loader setup
+        //Image loader setup
         DisplayImageOptions defaultOptions = new DisplayImageOptions.Builder()
                 .cacheInMemory(true)
                 .cacheOnDisk(true)
@@ -79,39 +65,18 @@ public class MainActivity extends Activity {
                 .build();
         ImageLoader.getInstance().init(config);
 
-        //requestData();
-    }
-
-
-    private API getService() {
-        Retrofit retrofit = new Retrofit.Builder().addConverterFactory(SimpleXmlConverterFactory.create())
-                .baseUrl(ENDPOINT)
-                .build();
-
-        return retrofit.create(API.class);
-    }
-
-    public void requestData() {
-
-        Call<SearchResults> call = getService().getDetails(PATH);
-
-        call.enqueue(new Callback<SearchResults>() {
+        refreshBtn = (Button) findViewById(R.id.refreshButton);
+        refreshBtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onResponse(Call<SearchResults> call, Response<SearchResults> response) {
-                queryModelList = (ArrayList<FeedItem>) response.body().getChannel().getItems();
-                updateDisplay();
-            }
-
-            @Override
-            public void onFailure(Call<SearchResults> call, Throwable t) {
-                Log.e("onFailure", t.toString());
+            public void onClick(View v) {
+                requestData();
             }
         });
     }
 
-    private void requestRaw() {
+    private void requestAll() {
         category.add("Sve vijesti");
-        Call<SearchResults> call = getService().getRaw(PATH);
+        Call<SearchResults> call = getService().getAll(PATH);
 
         call.enqueue(new Callback<SearchResults>() {
             @Override
@@ -128,27 +93,59 @@ public class MainActivity extends Activity {
 
     public void setCategory(Channel result) {
         for (int i = 0; i < result.getItems().size(); i++) {
-            if (!category.contains(result.getItems().get(i).getmCategory())) {
-                category.add(result.getItems().get(i).getmCategory());
+            if (!category.contains(result.getItems().get(i).getCategory())) {
+                category.add(result.getItems().get(i).getCategory());
             }
-        }
-        for (int i = 0; i < category.size(); i++) {
-            Log.i("Category#", category.get(i));
         }
     }
 
-    private void updateDisplay() {
-        if (queryModelList == null) {
-            NoResult();
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        requestData();
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+    }
+
+    //retrofit
+    private API getService() {
+        Retrofit retrofit = new Retrofit.Builder().addConverterFactory(SimpleXmlConverterFactory.create())
+                .baseUrl(URL_BUG)
+                .build();
+
+        return retrofit.create(API.class);
+    }
+
+    //request data
+    public void requestData() {
+        Call<SearchResults> call = getService().getDetails(PATH);
+        call.enqueue(new Callback<SearchResults>() {
+            @Override
+            public void onResponse(Call<SearchResults> call, Response<SearchResults> response) {
+                queryItemList = (ArrayList<FeedItem>) response.body().getChannel().getItems();
+                updateArticles();
+            }
+
+            @Override
+            public void onFailure(Call<SearchResults> call, Throwable t) {
+                Log.e("onFailure", t.toString());
+            }
+        });
+    }
+
+    private void updateArticles() {
+        if (queryItemList == null) {
+            noResults();
         } else {
-            ItemAdapter adapter = new ItemAdapter(queryModelList);
+            filterResult();
+            ItemAdapter adapter = new ItemAdapter(queryItemList, spnCategory.getSelectedItem().toString());
             lvFeed.setAdapter(adapter);
             lvFeed.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
                 @Override
                 public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-
-                    String selected = ((TextView) view.findViewById(R.id.txhtml)).getText().toString();
+                    String selected = ((TextView) view.findViewById(R.id.tv_url)).getText().toString();
                     browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(selected));
                     startActivity(browserIntent);
                 }
@@ -156,35 +153,20 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void NoResult() {
+    private void filterResult() {
+        String selectedCategory = spnCategory.getSelectedItem().toString();
+        ArrayList<FeedItem> dArray = new ArrayList<>();
+        dArray.addAll(queryItemList);
+        int deleted = 0;
+        for (int i = 0; i < dArray.size(); i++) {
+            if (!dArray.get(i).getCategory().equals(selectedCategory) && !selectedCategory.equals("Sve vijesti")) {
+                queryItemList.remove(i - deleted);
+                deleted++;
+            }
+        }
+    }
+
+    private void noResults() {
         Toast.makeText(getApplicationContext(), "No articles to show", Toast.LENGTH_LONG).show();
-    }
-
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Intent intent = new Intent(getApplicationContext(), Refresh.class);
-        this.bindService(intent, this.mRefreshServiceConnection, Context.BIND_AUTO_CREATE);
-        Log.d("Service", "Bind service");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        this.unbindService(this.mRefreshServiceConnection);
-        Log.d("Service", "Unbind service");
-    }
-
-    class RefreshServiceConnection implements ServiceConnection {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mRefreshService = ((Refresh.RefreshFeed) service).getService();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mRefreshService = null;
-        }
     }
 }

@@ -1,7 +1,7 @@
 package com.ferit.dfundak.dz4.model;
 
 /**
- * Created by Dora on 27/04/2017.
+ * Created by Dora on 26/04/2017.
  */
 
 import org.simpleframework.xml.ElementList;

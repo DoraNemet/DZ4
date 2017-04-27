@@ -5,12 +5,12 @@ import retrofit2.http.GET;
 import retrofit2.http.Url;
 
 /**
- * Created by Dora on 27/04/2017.
+ * Created by Dora on 26/04/2017.
  */
 
 public interface API {
     @GET
     Call<SearchResults> getDetails(@Url String url);
     @GET
-    Call<SearchResults> getRaw(@Url String uri);
+    Call<SearchResults> getAll(@Url String uri);
 }
